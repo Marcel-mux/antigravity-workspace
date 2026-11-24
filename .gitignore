@@ -1,0 +1,11 @@
+.venv/
+.env
+.env.*
+!.env.example
+state.json*
+.gateway_uploads/
+cv/
+__pycache__/
+*.pyc
+*.tmp
+.pytest_cache/

@@ -1,0 +1,18 @@
+[Unit]
+Description=Antigravity Discord Gateway
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/projects/antigravity-workspace
+Environment=PYTHONUNBUFFERED=1
+Environment=PATH=/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+EnvironmentFile=/root/projects/antigravity-workspace/.env
+ExecStart=/root/projects/antigravity-workspace/.venv/bin/python /root/projects/antigravity-workspace/gateway.py start
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
