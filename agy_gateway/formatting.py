@@ -353,3 +353,28 @@ def format_context_usage(
     if output_tokens is not None and output_tokens > 0:
         totals.append(f"{_fmt_compact(output_tokens)} out")
     return f"{main} · total sesi: {', '.join(totals)}" if totals else main
+
+
+def format_context_warning(
+    context_tokens: int | None,
+    *,
+    model_id: str | None = None,
+    threshold: int = 150_000,
+) -> str | None:
+    """Return a concise warning footer when session context exceeds the threshold."""
+    if context_tokens is None or threshold <= 0:
+        return None
+    limit = infer_context_window_limit(model_id)
+    effective_threshold = min(threshold, int(limit * 0.70)) if limit else threshold
+    if context_tokens < effective_threshold:
+        return None
+    if limit:
+        pct = (context_tokens / limit) * 100.0
+        limit_label = "1M" if limit == 1_048_576 else f"{limit // 1000}K"
+        size_part = f"`{context_tokens:,}` tokens ({pct:.1f}% of {limit_label})"
+    else:
+        size_part = f"`{context_tokens:,}` tokens"
+    return (
+        f"> ⚠️ Context sesi ini udah {size_part} — "
+        "pertimbangkan `/compact` atau `/new` biar hemat kuota."
+    )

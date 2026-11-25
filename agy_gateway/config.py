@@ -47,6 +47,7 @@ class GatewayConfig:
     default_workdir: Path = Path.cwd()
     default_mode: str = "auto"
     default_model: str | None = None
+    auxiliary_model: str | None = "gemini-4-hydrogen-low"
     sandbox: bool = False
     skip_permissions: bool = False
     timeout_seconds: int = 0
@@ -60,6 +61,7 @@ class GatewayConfig:
     agy_conversations_db: Path = Path.home() / ".gemini" / "antigravity-cli" / "conversation_summaries.db"
     hermes_state_db: Path | None = None
     cross_channel_history_limit: int = 15
+    context_warn_threshold: int = 150_000
 
     def is_authorized(
         self,
@@ -168,6 +170,10 @@ def load_config(env_path: Path | None = None) -> GatewayConfig:
 
     workdir = Path(os.getenv("AGY_WORKDIR", str(Path.cwd()))).expanduser().resolve()
     model = os.getenv("AGY_MODEL", "").strip() or None
+    aux_env = os.getenv("AGY_AUX_MODEL")
+    auxiliary_model = (
+        (aux_env.strip() or None) if aux_env is not None else "gemini-4-hydrogen-low"
+    )
     state_file = Path(os.getenv("GATEWAY_STATE_FILE", "state.json")).expanduser()
 
     memory_mode = os.getenv("HERMES_MEMORY_MODE", "readonly").strip().lower() or "readonly"
@@ -208,6 +214,7 @@ def load_config(env_path: Path | None = None) -> GatewayConfig:
         default_workdir=workdir,
         default_mode=mode,
         default_model=model,
+        auxiliary_model=auxiliary_model,
         sandbox=_parse_bool(os.getenv("AGY_SANDBOX"), default=False),
         skip_permissions=_parse_bool(os.getenv("AGY_SKIP_PERMISSIONS"), default=False),
         timeout_seconds=int(os.getenv("AGY_TIMEOUT_SECONDS", "0").strip() or "0"),
@@ -222,6 +229,9 @@ def load_config(env_path: Path | None = None) -> GatewayConfig:
         hermes_state_db=hermes_state_db,
         cross_channel_history_limit=max(
             1, int(os.getenv("CROSS_CHANNEL_HISTORY_LIMIT", "15").strip() or "15")
+        ),
+        context_warn_threshold=max(
+            0, int(os.getenv("CONTEXT_WARN_THRESHOLD", "150000").strip() or "150000")
         ),
     )
 

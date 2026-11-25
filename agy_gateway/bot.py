@@ -21,6 +21,7 @@ from agy_gateway.formatting import (
     extract_channel_mentions,
     format_channel_backfill_block,
     format_context_usage,
+    format_context_warning,
     format_referenced_channel_block,
     format_streaming_preview,
     format_usage_report,
@@ -261,7 +262,7 @@ class AntigravityBot(discord.Client):
 
         workdir = Path(ch.workdir) if ch.workdir else self.config.default_workdir
         mode = ch.mode or self.config.default_mode
-        model = ch.model or self.config.default_model
+        model = self.config.auxiliary_model or ch.model or self.config.default_model
         old_ctx = ch.last_context_tokens
         focus_note = f"\nFokus utama yang harus dipertahankan: {focus.strip()}" if focus and focus.strip() else ""
         summarize_prompt = (
@@ -442,7 +443,7 @@ class AntigravityBot(discord.Client):
             workdir=workdir,
             conversation_id=None,
             mode="plan",
-            model=ch.model or self.config.default_model,
+            model=self.config.auxiliary_model or ch.model or self.config.default_model,
             sandbox=self.config.sandbox,
             skip_permissions=self.config.skip_permissions,
             timeout_seconds=self.config.timeout_seconds,
@@ -985,6 +986,13 @@ class AntigravityBot(discord.Client):
             final_text = f"{prefix}❌ **Error:** {result.error}"
         else:
             final_text = result.response or "*(selesai tanpa output teks)*"
+            warn = format_context_warning(
+                result.context_tokens,
+                model_id=ch_state.model or self.config.default_model,
+                threshold=self.config.context_warn_threshold,
+            )
+            if warn:
+                final_text = f"{final_text}\n\n{warn}"
 
         chunks = split_message(final_text)
         try:

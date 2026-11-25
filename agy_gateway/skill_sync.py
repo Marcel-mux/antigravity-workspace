@@ -12,9 +12,16 @@ DEFAULT_AGY_SKILLS_DIR = Path.home() / ".gemini" / "config" / "skills"
 EXCLUDED_CATEGORIES = frozenset({"apple", "email", "media", "social-media", "note-taking"})
 EXCLUDED_SKILLS = frozenset(
     {
+        "architecture-diagram-renderer",
+        "cloud-agent-sandboxes",
+        "deepseek-harness",
+        "godmode",
         "hermes-agent",
         "hermes-agent-skill-authoring",
         "inspecting-hermes-desktop-dom",
+        "kde-plasma-theming",
+        "linux-desktop-gaming",
+        "refurbished-laptop-vetting",
         "sdlc-review",
     }
 )

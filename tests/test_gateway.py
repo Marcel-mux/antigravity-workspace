@@ -780,7 +780,7 @@ def test_compact_command_handoff_and_agy_memory_injection(tmp_path: Path) -> Non
     ctx_block = build_hermes_context_block(cfg)
     assert ctx_block is not None and "AGY_MEMORY.md" in ctx_block and "Use pytest before deploy" in ctx_block
 
-    calls: list[tuple[str | None, str]] = []
+    calls: list[tuple[str | None, str, object]] = []
 
     class _FakeRunner:
         def is_running(self, _cid: int) -> bool:
@@ -788,7 +788,7 @@ def test_compact_command_handoff_and_agy_memory_injection(tmp_path: Path) -> Non
 
         async def run_prompt(self, _cid: int, prompt: str, **kwargs: object) -> AgyRunResult:
             conv = kwargs.get("conversation_id")
-            calls.append((conv if isinstance(conv, str) else None, prompt))
+            calls.append((conv if isinstance(conv, str) else None, prompt, kwargs.get("model")))
             if conv == "old-conv-1":
                 return AgyRunResult(
                     response="Goal: setup MCP.\nNext: restart service.",
@@ -804,15 +804,23 @@ def test_compact_command_handoff_and_agy_memory_injection(tmp_path: Path) -> Non
 
     bot = AntigravityBot(cfg)
     bot.runner = _FakeRunner()  # type: ignore[assignment]
-    bot.state_store.update(999, conversation_id="old-conv-1", last_context_tokens=150000)
+    bot.state_store.update(
+        999,
+        conversation_id="old-conv-1",
+        model="gemini-4-neon-medium",
+        last_context_tokens=150000,
+    )
 
     out = asyncio.run(bot._cmd_compact(999, focus="MCP setup"))
     assert "old-conv-1" in out and "new-conv-2" in out
     assert "150,000" in out and "12,000" in out
     assert len(calls) == 2
     assert calls[0][0] == "old-conv-1" and "MCP setup" in calls[0][1]
+    assert calls[0][2] == "gemini-4-hydrogen-low"
     assert calls[1][0] is None and "Goal: setup MCP." in calls[1][1] and "AGY_MEMORY.md" in calls[1][1]
+    assert calls[1][2] == "gemini-4-hydrogen-low"
     assert bot.state_store.get(999).conversation_id == "new-conv-2"
+    assert bot.state_store.get(999).model == "gemini-4-neon-medium"
     assert bot.state_store.get(999).last_context_tokens == 12000
 
 
@@ -836,6 +844,8 @@ def test_sync_hermes_skills_adds_custom_and_prunes_stale(tmp_path: Path) -> None
     (hermes_dir / "apple" / "apple-notes" / "SKILL.md").write_text("---\nname: apple-notes\n---\n")
     (hermes_dir / "autonomous-ai-agents" / "hermes-agent").mkdir(parents=True)
     (hermes_dir / "autonomous-ai-agents" / "hermes-agent" / "SKILL.md").write_text("---\nname: hermes-agent\n---\n")
+    (hermes_dir / "security" / "godmode").mkdir(parents=True)
+    (hermes_dir / "security" / "godmode" / "SKILL.md").write_text("---\nname: godmode\n---\n")
 
     # Custom skill added by Hermes -> automatically synced!
     (hermes_dir / "devops" / "new-custom-ops").mkdir(parents=True)
@@ -855,6 +865,7 @@ def test_sync_hermes_skills_adds_custom_and_prunes_stale(tmp_path: Path) -> None
     assert not (agy_dir / "airtable").exists()
     assert not (agy_dir / "apple-notes").exists()
     assert not (agy_dir / "hermes-agent").exists()
+    assert not (agy_dir / "godmode").exists()
     assert (agy_dir / "agy-native-skill" / "SKILL.md").is_file()
 
 
@@ -909,3 +920,21 @@ def test_curator_check_updates_state_ledger_and_flags_issues(tmp_path: Path) -> 
     assert rep2.run_count == 2
     assert rep2.invalid_skills == []
     assert rep2.ledger_events == 1  # updated hash for broken-ws -> fixed
+
+
+def test_context_warning_threshold_and_footer() -> None:
+    from agy_gateway.formatting import format_context_warning
+
+    # Below threshold -> silent
+    assert format_context_warning(120_000, model_id="gemini-4-hydrogen-medium") is None
+    assert format_context_warning(200_000, model_id="gemini-4-hydrogen-medium", threshold=0) is None
+
+    # Above 150K on 1M Gemini -> emits warning
+    warn_gemini = format_context_warning(263_746, model_id="gemini-4-neon-medium")
+    assert warn_gemini is not None
+    assert "263,746" in warn_gemini and "25.2% of 1M" in warn_gemini and "/compact" in warn_gemini
+
+    # Claude 200K window warns at 70% (140K) even when threshold=150K
+    assert format_context_warning(130_000, model_id="claude-sonnet-5-5-medium") is None
+    warn_claude = format_context_warning(145_000, model_id="claude-sonnet-5-5-medium")
+    assert warn_claude is not None and "72.5% of 200K" in warn_claude
