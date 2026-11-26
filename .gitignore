@@ -3,6 +3,7 @@
 .env.*
 !.env.example
 state.json*
+agy-gateway.service
 .gateway_uploads/
 cv/
 __pycache__/

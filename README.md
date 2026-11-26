@@ -32,16 +32,26 @@ Gateway Discord bergaya **Hermes Agent** untuk mengontrol **Google Antigravity C
 
 ## 2. Konfigurasi & Jalankan Gateway
 
+### Prasyarat
+- Python 3.10+
+- [Google Antigravity CLI (`agy`)](https://antigravity.google) sudah terpasang dan login di mesin host
+
 ```bash
-# 1. Jalankan wizard setup interaktif (mirip `hermes gateway setup`)
+# 1. Buat virtualenv & install dependencies otomatis
+chmod +x setup.sh && ./setup.sh
+
+# Atau manual:
+# python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
+
+# 2. Jalankan wizard setup interaktif (mirip `hermes gateway setup`)
 ./.venv/bin/python gateway.py setup
 
-# 2. Jalankan bot gateway
+# 3. Jalankan bot gateway
 ./.venv/bin/python gateway.py start
 ```
 
 ### Menjalankan 24/7 di Background (`systemd`)
-Wizard `setup` bisa langsung membuatkan `agy-gateway.service`, atau jalankan:
+Wizard `setup` bisa langsung membuatkan `agy-gateway.service` sesuai user dan direktori kerja kamu, atau jalankan:
 ```bash
 ./.venv/bin/python gateway.py service
 ```

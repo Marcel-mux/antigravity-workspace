@@ -434,7 +434,7 @@ class AntigravityBot(discord.Client):
             "Instruksi:\n"
             "1. Panggil MCP `memory_read` dan `session_search` untuk mengecek topik/perbaikan berulang terbaru.\n"
             "2. Cek apakah ada skill milik Agy (`agy-owned` / `workspace`) yang perlu diperbarui atau skill baru yang layak dibuat di `~/.gemini/config/skills/`.\n"
-            "3. JANGAN ubah skill symlink milik `/root/.hermes/skills/`.\n"
+            "3. JANGAN ubah skill symlink milik `~/.hermes/skills/`.\n"
             "4. Berikan rekomendasi ringkas dan spesifik dalam maksimal 8 bullet tanpa mengedit file dulu kecuali ada skill rusak."
         )
         res = await self.runner.run_prompt(
